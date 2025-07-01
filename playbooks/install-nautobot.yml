@@ -1,0 +1,89 @@
+---
+- name: Déploiement complet de Nautobot avec Docker
+  hosts: nautobot
+  become: true
+  vars:
+    nautobot_repo: "https://github.com/nautobot/nautobot-docker-compose.git"
+    nautobot_path: "/home/{{ ansible_user }}/nautobot-docker-compose"
+    poetry_path: "/home/{{ ansible_user }}/.local/bin/poetry"
+
+  vars_files:
+    - "{{ playbook_dir }}/secrets.yml"
+
+  tasks:
+    - name: Debug vars
+      debug:
+        var: nautobot_db_password
+
+    - name: Installer les paquets requis (Docker, Git, etc.)
+      apt:
+        name: [git, curl, python3-pip, python3-venv]
+        update_cache: yes
+
+    - name: Installer Docker via script officiel
+      shell: |
+        curl -fsSL https://get.docker.com -o get-docker.sh
+        sh get-docker.sh
+      args:
+        creates: /usr/bin/docker
+
+    - name: Ajouter l'utilisateur au groupe docker
+      user:
+        name: "{{ ansible_user }}"
+        groups: docker
+        append: yes
+
+    - name: Cloner le dépôt Nautobot
+      git:
+        repo: "{{ nautobot_repo }}"
+        dest: "{{ nautobot_path }}"
+        version: main
+        force: yes
+
+    - name: Copier local.env
+      copy:
+        src: files/local.env
+        dest: "{{ nautobot_path }}/environments/local.env"
+        owner: "{{ ansible_user }}"
+        mode: '0600'
+
+    - name: Générer le fichier creds.env depuis un template
+      template:
+        src: files/creds.env.j2
+        dest: "{{ nautobot_path }}/environments/creds.env"
+        owner: "{{ ansible_user }}"
+        mode: '0600'
+
+    - name: Copier invoke.example.yml → invoke.yml
+      copy:
+        remote_src: yes
+        src: "{{ nautobot_path }}/invoke.example.yml"
+        dest: "{{ nautobot_path }}/invoke.yml"
+        owner: "{{ ansible_user }}"
+
+    - name: Installer Poetry
+      become_user: "{{ ansible_user }}"
+      shell: |
+        curl -sSL https://install.python-poetry.org | python3 -
+      args:
+        creates: "{{ poetry_path }}"
+
+    - name: Ajouter Poetry au PATH dans .bashrc
+      lineinfile:
+        path: "/home/{{ ansible_user }}/.bashrc"
+        line: 'export PATH="$HOME/.local/bin:$PATH"'
+        state: present
+
+    - name: Installer les dépendances Python avec Poetry
+      become_user: "{{ ansible_user }}"
+      shell: |
+        export PATH="$HOME/.local/bin:$PATH"
+        cd {{ nautobot_path }}
+        poetry install --no-root
+
+    - name: Lancer Nautobot avec invoke
+      become_user: "{{ ansible_user }}"
+      shell: |
+        export PATH="$HOME/.local/bin:$PATH"
+        cd {{ nautobot_path }}
+        poetry run invoke build start

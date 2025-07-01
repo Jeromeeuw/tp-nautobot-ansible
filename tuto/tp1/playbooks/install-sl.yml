@@ -1,0 +1,10 @@
+---
+- name: Installer le paquet SL sur la machine distante
+  hosts: ssh
+  become: true
+  tasks:
+    - name: Installer sl
+      apt:
+        name: sl
+        state: present
+        update_cache: yes

@@ -1,39 +1,76 @@
 ---
-- name: Installer Docker sur Ubuntu
+- name: Déploiement de Nautobot avec Docker
   hosts: nautobot
   become: true
+  vars:
+    nautobot_repo: "https://github.com/nautobot/nautobot-docker-compose.git"
+    nautobot_dir: "/home/{{ ansible_user }}/nautobot-docker-compose"
+
   tasks:
-    - name: Installer les paquets nécessaires
+
+    - name: Installer dépendances
       apt:
-        name:
-          - ca-certificates
-          - curl
-          - gnupg
-          - lsb-release
-        state: present
-        update_cache: true
+        name: [git, curl, python3-pip, python3-venv]
+        update_cache: yes
 
-    - name: Ajouter la clé GPG officielle de Docker
-      apt_key:
-        url: https://download.docker.com/linux/ubuntu/gpg
-        state: present
-
-    - name: Ajouter le dépôt Docker
-      apt_repository:
-        repo: "deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ ansible_lsb.codename }} stable"
-        state: present
-
-    - name: Installer Docker Engine
-      apt:
-        name:
-          - docker-ce
-          - docker-ce-cli
-          - containerd.io
-        state: latest
-        update_cache: true
+    - name: Installer Docker (script officiel)
+      shell: |
+        curl -fsSL https://get.docker.com -o get-docker.sh
+        sh get-docker.sh
+      args:
+        creates: /usr/bin/docker
 
     - name: Ajouter l'utilisateur au groupe docker
       user:
         name: "{{ ansible_user }}"
         groups: docker
         append: yes
+
+    - name: Cloner le dépôt Nautobot
+      git:
+        repo: "{{ nautobot_repo }}"
+        dest: "{{ nautobot_dir }}"
+        version: main
+
+    - name: Copier le fichier local.env
+      copy:
+        src: files/local.env
+        dest: "{{ nautobot_dir }}/environments/local.env"
+        mode: '0600'
+        owner: "{{ ansible_user }}"
+
+    - name: Copier le fichier creds.env
+      copy:
+        src: files/creds.env
+        dest: "{{ nautobot_dir }}/environments/creds.env"
+        mode: '0600'
+        owner: "{{ ansible_user }}"
+
+    - name: Copier le fichier invoke.example.yml → invoke.yml
+      copy:
+        remote_src: yes
+        src: "{{ nautobot_dir }}/invoke.example.yml"
+        dest: "{{ nautobot_dir }}/invoke.yml"
+        owner: "{{ ansible_user }}"
+
+    - name: Installer Poetry dans le home utilisateur
+      shell: |
+        curl -sSL https://install.python-poetry.org | python3 -
+      args:
+        creates: /home/{{ ansible_user }}/.local/bin/poetry
+      become_user: "{{ ansible_user }}"
+
+    - name: Exporter le PATH avec poetry
+      lineinfile:
+        path: /home/{{ ansible_user }}/.bashrc
+        line: 'export PATH="$HOME/.local/bin:$PATH"'
+        state: present
+
+    - name: Lancer `invoke build start`
+      shell: |
+        export PATH="$HOME/.local/bin:$PATH"
+        poetry install
+        poetry run invoke build start
+      args:
+        chdir: "{{ nautobot_dir }}"
+      become_user: "{{ ansible_user }}"
