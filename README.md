@@ -70,7 +70,7 @@ ssh-add ~/.ssh/id_ed25519
 
 ## Variables sensibles
 
-Les mots de passe et secrets doivent être placés dans un fichier `secrets.yml`.
+Les mots de passe et secrets doivent être placés dans un fichier `secrets.yml` (mdp : 0000).
 
 ## Désactivation de l'environnement virtuel
 

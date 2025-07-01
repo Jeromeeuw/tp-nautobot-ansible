@@ -1,0 +1,30 @@
+- name: Créer plusieurs VLANs dans Nautobot
+  hosts: localhost
+  gather_facts: false
+  
+  vars_files:
+    - ../group_vars/vlans.yml
+
+  tasks:
+    - name: Créer les VLANs en boucle
+      uri:
+        url: "{{ nautobot_url }}/ipam/vlans/"
+        method: POST
+        headers:
+          Authorization: "Token {{ nautobot_token }}"
+          Content-Type: "application/json"
+        body_format: json
+        body:
+          name: "{{ item.name }}"
+          vid: "{{ item.vid }}"
+          site: "{{ site_slug }}"
+          status: "{{ status_uuid }}"
+        status_code: [200, 201, 400]
+      loop: "{{ vlans }}"
+      loop_control:
+        label: "{{ item.name }}"
+      register: vlan_results
+
+    - name: Afficher les résultats
+      debug:
+        var: vlan_results.results

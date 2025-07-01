@@ -1,0 +1,12 @@
+nautobot_url: "https://demo.nautobot.com/api"
+nautobot_token: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+site_slug: "lab"
+status_uuid: "bf03f613-7663-5ed6-bee3-f05d588065cc"
+
+vlans:
+  - name: "vlan-serveurs"
+    vid: 40
+  - name: "vlan-admin"
+    vid: 10
+  - name: "vlan-users"
+    vid: 20
