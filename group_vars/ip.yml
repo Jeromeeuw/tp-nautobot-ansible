@@ -1,0 +1,5 @@
+nautobot_url: "https://demo.nautobot.com/api"
+nautobot_token: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+ip_address: "192.168.40.10/24"
+status_uuid: "bf03f613-7663-5ed6-bee3-f05d588065cc"  # UUID de "Active"
+interface_id: "UUID_DE_L_INTERFACE"

@@ -1,0 +1,27 @@
+- name: Ajouter une adresse IP dans Nautobot
+  hosts: localhost
+  gather_facts: false
+
+  vars_files:
+    - ../group_vars/ip.yml
+
+  tasks:
+    - name: Ajouter l'adresse IP
+      uri:
+        url: "{{ nautobot_url }}/ipam/ip-addresses/"
+        method: POST
+        headers:
+          Authorization: "Token {{ nautobot_token }}"
+          Content-Type: "application/json"
+        body_format: json
+        body:
+          address: "{{ ip_address }}"
+          assigned_object_type: "dcim.interface"
+          assigned_object_id: "{{ interface_id }}"
+          status: "{{ status_uuid }}"
+        status_code: [200, 201, 400]
+      register: ip_creation_result
+
+    - name: Afficher le résultat
+      debug:
+        var: ip_creation_result
