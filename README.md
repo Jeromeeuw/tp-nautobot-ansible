@@ -18,7 +18,31 @@ uv venv ansible_venv --python 3.13
 source ansible_venv/bin/activate
 
 # Installer ansible-core dans l'environnement virtuel
-uv pip install ansible-core
+uv pip install -r requirements.txt
+```
+
+## Connexion SSH sans mot de passe (recommandé pour Ansible)
+
+### Étape 1 – Générer une clé SSH
+
+```bash
+ssh-keygen -t ed25519 -C "ton_email@example.com"
+```
+Accepte le chemin par défaut (`~/.ssh/id_ed25519`) et définis une passphrase si tu veux plus de sécurité.
+
+### Étape 2 – Copier la clé publique vers la machine distante
+
+Toujours depuis la machine A :
+
+```bash
+ssh-copy-id -i ~/.ssh/id_ed25519.pub utilisateur@IP_ou_nom_de_machine_B
+```
+Cela va automatiquement ajouter la clé dans `~/.ssh/authorized_keys` sur la machine distante.
+
+### (Optionnel) Ajouter la clé privée à l'agent SSH
+
+```bash
+ssh-add ~/.ssh/id_ed25519
 ```
 
 ## Utilisation du playbook Nautobot
@@ -46,8 +70,7 @@ uv pip install ansible-core
 
 ## Variables sensibles
 
-Les mots de passe et secrets doivent être placés dans un fichier `secrets.yml` (voir exemple dans `playbooks/secrets.yml.example`).  
-Ne versionnez jamais vos secrets en clair dans le dépôt.
+Les mots de passe et secrets doivent être placés dans un fichier `secrets.yml`.
 
 ## Désactivation de l'environnement virtuel
 
