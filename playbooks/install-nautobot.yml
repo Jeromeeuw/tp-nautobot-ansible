@@ -9,7 +9,7 @@
 
   vars_files:
     - "{{ playbook_dir }}/secrets.yml"
-
+    
   tasks:
     - name: Debug vars
       debug:
